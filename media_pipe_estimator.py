@@ -2,7 +2,6 @@ import cv2 as cv
 import mediapipe as mp
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 
 # Get original MediaPipe landmarks from an image
 
@@ -34,6 +33,11 @@ def get_landmarks_from_image(image):
 
     return landmark_dict
 
+def save_annotated_image(annotated_image, output_image_path):
+    cv.imwrite(output_image_path, annotated_image)
+    print(f"Image saved as {output_image_path}")
+
+
 """Function that detects poses and draw them in the image"""
 
 def detect_and_draw_pose(image, visibility_threshold=0.5):
@@ -55,8 +59,8 @@ def detect_and_draw_pose(image, visibility_threshold=0.5):
         landmark_dict= {}
         for i, landmark in enumerate(results.pose_landmarks.landmark):
             landmark_name = mp_pose.PoseLandmark(i).name
-            x= int(landmark.x *image.shape[1])
-            y= int(landmark.y * image.shape[0])
+            x= landmark.x
+            y= landmark.y
             z= landmark.z
             visibility = landmark.visibility
 
@@ -84,68 +88,62 @@ def detect_and_draw_pose(image, visibility_threshold=0.5):
         return image, None
     
 
-import math
 
-def calculate_lumbar_angle(landmarks):
-    """
-    Calculate the lumbar kyphosis angle using 3D pose landmarks.
-    """
-    try:
-        left_shoulder = landmarks['LEFT_SHOULDER']
-        right_shoulder = landmarks['RIGHT_SHOULDER']
-        left_hip = landmarks['LEFT_HIP']
-        right_hip = landmarks['RIGHT_HIP']
+# def prepare_data_for_keypoint_extraction(data_folder_path):
+#     # list subdirectories( for subjects) in the dataset
+#     dirs= os.listdir(data_folder_path)
+#     photos = []
+#     labels = []
+#     label_dict = {}
+#     label_id = 0
 
-        # Compute midpoints (average of left and right)
-        shoulder_mid = (
-            (left_shoulder[0] + right_shoulder[0]) / 2,
-            (left_shoulder[1] + right_shoulder[1]) / 2,
-            (left_shoulder[2] + right_shoulder[2]) / 2
-        )
-        hip_mid = (
-            (left_hip[0] + right_hip[0]) / 2,
-            (left_hip[1] + right_hip[1]) / 2,
-            (left_hip[2] + right_hip[2]) / 2
-        )
+#     for dir_name in dirs:
+#         subject_dir_path = os.path.join(data_folder_path, dir_name)
+#         if not os.path.isdir(subject_dir_path):
+#             continue
 
-        # Calculate differences
-        delta_y = shoulder_mid[1] - hip_mid[1]  # Vertical distance
-        delta_z = shoulder_mid[2] - hip_mid[2]  # Depth distance
+#         # Save the mapping of label to condition
+#         label_dict[label_id] = dir_name
 
-        # Compute lumbar angle
-        lumbar_angle = math.degrees(math.atan2(delta_z, delta_y))
+#         for image_name in os.listdir(subject_dir_path):
+#             image_path = os.path.join(subject_dir_path, image_name)
+#             image = cv.imread(image_path)
+#             if image is None:
+#                 print(f"Error loading image: {image_path}")
+#                 continue
+#             # Convert image to grayscale
+#             gray_image = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+#             # Detect keypoints and annotate image
+#             annotadet_image, land_marks_dict = detect_and_draw_pose(
+#                 gray_image, visibility_threshold=0.6)
+#             if annotadet_image is not None:
+#                 photos.append(annotadet_image)
+#                 labels.append(label_id)
 
-        return lumbar_angle
+#         label_id += 1
+            
 
-    except KeyError as e:
-        print(f"Missing keypoint: {e}")
-        return None
+
 
 
 # image_path = '/Users/arminaskurmauskas/Pose_Estimator/input_image.jpeg'
-image = cv.imread(image_path)
+# image = cv.imread(image_path)
 
-annotated_image, pose_landmarks_dict = detect_and_draw_pose(
-    image, visibility_threshold=0.6)
+# annotated_image, pose_landmarks_dict = detect_and_draw_pose(
+#     image, visibility_threshold=0.6)
 
-if pose_landmarks_dict:
-    for name, (x, y, z, visibility) in pose_landmarks_dict.items():
-        print(f'{name}: ({x}, {y}), Z- {z}, visibility: {visibility:.2f}')
+# if pose_landmarks_dict:
+#     for name, (x, y, z, visibility) in pose_landmarks_dict.items():
+#         print(f'{name}: ({x}, {y}), Z- {z}, visibility: {visibility:.2f}')
 
 
-plt.figure(figsize=(8, 6))
-plt.imshow(cv.cvtColor(annotated_image, cv.COLOR_BGR2RGB))
-plt.axis('off')
-plt.show()
+# plt.figure(figsize=(8, 6))
+# plt.imshow(cv.cvtColor(annotated_image, cv.COLOR_BGR2RGB))
+# plt.axis('off')
+# plt.show()
 
-# lumbar_angle = calculate_lumbar_angle(pose_landmarks_dict)
 
-# if lumbar_angle is not None:
-#     print(f"Lumbar Kyphosis Angle: {lumbar_angle:.2f} degrees")
-# else:
-#     print("Error calculating lumbar angle.")
-
-output_path = image_path+'_annotated_image.jpg'
-cv.imwrite(output_path, annotated_image)
+# output_path = image_path+'_annotated_image.jpg'
+# cv.imwrite(output_path, annotated_image)
 
 # print(get_landmarks_from_image(image))
