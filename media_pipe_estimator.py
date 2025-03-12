@@ -24,10 +24,10 @@ def has_pose(image_path):
             
             # Check if pose landmarks were detected and have enough keypoints
             if results.pose_landmarks is not None:
-                # Count visible landmarks (optional: you can require a minimum number)
+                # Count visible landmarks
                 visible_landmarks = sum(1 for landmark in results.pose_landmarks.landmark 
                                       if landmark.visibility > 0.5)
-                return any(visible_landmarks >= 10) # Require at least 10 visible landmarks
+                return visible_landmarks >= 10 # Require at least 10 visible landmarks
             
             return False
             

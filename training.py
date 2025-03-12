@@ -18,5 +18,7 @@ X_train, X_test, y_train, y_test, features = preprocess_data(df)
 
 print("Data preprocessing and splitting complete.")
 print("*"* 80)
+
 run_model(X_train, X_test, y_train, y_test, features)
+
 print('Model training and saving complete.')

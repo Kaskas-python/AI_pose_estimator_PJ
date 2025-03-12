@@ -7,15 +7,12 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from PIL import Image
 from io import BytesIO
-# Import your modules
 from media_pipe_estimator import has_pose
-from MobileNetv2_model import is_human_image
+from hog_human_filter import is_human_image
 
 def setup_stealth_driver():
     """Setup a Selenium driver with anti-detection measures"""
@@ -252,9 +249,9 @@ def scrape_and_filter_images(query="human side stance", save_folder="posture_ima
             # Check if the image download was successful before proceeding
             if image_path:
                 try:
-                    # Use your custom ML models to filter
+                    # Use custom ML models to filter
                     if is_human_image(image_path) and has_pose(image_path):
-                        print(f"Saved: {image_path}")
+                        print(f"Is human and pose was detected, image saved as: {image_path}")
                         valid_images += 1
                     else:
                         if os.path.exists(image_path):
@@ -276,12 +273,9 @@ def scrape_and_filter_images(query="human side stance", save_folder="posture_ima
         # Check if the image was saved successfully before proceeding
         if os.path.exists(image_path):
             try:
-                # Use your custom ML models to filter
-                if is_human_image(image_path)== True:
-                    print(f"Is human: {image_path}")
-                    # if has_pose(image_path) == True:
-                    #     print(f"Has pose, image saved as: {image_path}")
-
+                # Use custom ML models to filter
+                if is_human_image(image_path) and has_pose(image_path):
+                    print(f"Is human and pose was detected, image saved as: {image_path}")
                     valid_images += 1
                 else:
                     if os.path.exists(image_path):
