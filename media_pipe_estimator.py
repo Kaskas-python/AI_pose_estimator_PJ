@@ -1,7 +1,40 @@
 import cv2 as cv
 import mediapipe as mp
-import numpy as np
-import matplotlib.pyplot as plt
+
+
+# Check if keypoints are found int the picture 
+def has_pose(image_path):
+    try:
+        mp_pose = mp.solutions.pose
+        with mp_pose.Pose(
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5) as pose:
+            
+            # Read the image
+            image = cv.imread(image_path)
+            if image is None:
+                print(f"Could not read image: {image_path}")
+                return False
+
+            # Convert to RGB for MediaPipe
+            image_rgb = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+            
+            # Process the image
+            results = pose.process(image_rgb)
+            
+            # Check if pose landmarks were detected and have enough keypoints
+            if results.pose_landmarks is not None:
+                # Count visible landmarks (optional: you can require a minimum number)
+                visible_landmarks = sum(1 for landmark in results.pose_landmarks.landmark 
+                                      if landmark.visibility > 0.5)
+                return any(visible_landmarks >= 10) # Require at least 10 visible landmarks
+            
+            return False
+            
+    except Exception as e:
+        print(f"Error processing {image_path}: {e}")
+        return False
+
 
 # Get original MediaPipe landmarks from an image
 
@@ -87,5 +120,5 @@ def detect_and_draw_pose(image, visibility_threshold=0.5):
 
         return annotated_image, landmark_dict
     else:
-        return image, None
+        return None, None
     

@@ -7,14 +7,6 @@ import os
 from media_pipe_estimator import detect_and_draw_pose, save_annotated_image
 
 
-# # Path to the directory containing images
-# image_dir = "/Users/arminaskurmauskas/AI_pose_estimator_PJ/dataset_posture"  # Change this to your directory pat
-# # CSV File to store keypoints
-# csv_filename = "lumbar_kyphosis_dataset_from_images.csv"
-# # Initialize CSV File
-
-# annotated_image_dir = "annotated_images"
-
 def create_annoated_image_folder(output_directory):
     # Create output folder for annotated images
     return os.makedirs(output_directory, exist_ok=True)

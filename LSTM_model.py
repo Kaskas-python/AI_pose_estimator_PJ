@@ -1,7 +1,7 @@
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, BatchNormalization, Bidirectional
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
-from tensorflow.keras.utils import plot_model
+# from tensorflow.keras.utils import plot_model
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import matplotlib.pyplot as plt
@@ -9,7 +9,7 @@ import numpy as np
 
 def preprocess_data(df):
     # Extract features (keypoints) and labels
-    features = df.drop(columns=['label', 'id'])  # Assuming 'id' is irrelevant
+    features = df.drop(columns=['label', 'id']) 
     labels = df['label']  # 'normal', 'mild_kyphosis', 'severe_kyphosis'
     
     # Split before scaling to avoid data leakage
@@ -44,6 +44,7 @@ def build_model(input_shape):
         LSTM(16, return_sequences=False, activation='tanh'),
         Dropout(0.4),
         
+        
         Dense(16, activation='relu'),
         Dense(3, activation='softmax')  # 3 classes: Normal, Mild Kyphosis, Severe Kyphosis
     ])
@@ -56,7 +57,7 @@ def run_model(X_train, X_test, y_train, y_test, input_shape):
     
     # Display Model Summary
     model.summary()
-    plot_model(model, to_file="model_structure.png", show_shapes=True, show_layer_names=True)
+    # plot_model(model, to_file="model_structure.png", show_shapes=True, show_layer_names=True)
     
     # Callbacks
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
