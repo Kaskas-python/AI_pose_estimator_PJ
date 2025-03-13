@@ -9,13 +9,6 @@ from datetime import datetime
 
 class PostureAnalyzer:
     def __init__(self, model_path, confidence_threshold=0.5):
-        """
-        Initialize the PostureAnalyzer with a pre-trained model.
-        
-        Args:
-            model_path (str): Path to the pre-trained model file
-            confidence_threshold (float): Threshold for landmark detection confidence
-        """
         # Load the pre-trained model
         self.model = tf.keras.models.load_model(model_path)
         
@@ -75,12 +68,9 @@ class PostureAnalyzer:
         self.session_start_time = time.time()
     
     def _get_feature_names(self):
-        """
-        Return the feature names used in the model.
-        This should match the features used during training.
-        """
+       
         # Define the landmarks used for posture analysis
-        # This should match exactly what you used during training
+        # This should match exactly what was used during training
         landmarks = [
             'nose', 'left_eye_inner', 'left_eye', 'left_eye_outer',
             'right_eye_inner', 'right_eye', 'right_eye_outer',
@@ -96,7 +86,7 @@ class PostureAnalyzer:
         # Create feature names for each landmark's x, y, z coordinates
         features = []
         for landmark in landmarks:
-            features.extend([f"{landmark}_x", f"{landmark}_y", f"{landmark}_z"])
+            features.extend([f"{landmark}_x", f"{landmark}_y", f"{landmark}_z", f"{landmark}_visibility"])
         
         return features
     
@@ -207,6 +197,17 @@ class PostureAnalyzer:
         
         return self.class_labels[predicted_class], confidence
     
+    def get_recommendations(self, predicted_class):
+        """
+        Get personalized recommendations based on the predicted posture.
+        
+        Args:
+            predicted_class (str): Predicted posture label
+            
+        Returns:
+            list: List of recommended exercises
+        """
+        return self.recommendations[predicted_class]
     
     def analyze_frame(self, frame):
         """
@@ -230,10 +231,10 @@ class PostureAnalyzer:
             return annotated_frame, "No pose detected", 0.0, [], False
         
         # Predict posture
-        posture_label, confidence, metrics = self.predict_posture(landmarks_dict)
+        posture_label, confidence = self.predict_posture(landmarks_dict)
         
         # Get personalized recommendations
-        recommendations = self.get_personalized_recommendations(posture_label, metrics)
+        recommendations = self.get_recommendations(posture_label)
         
         # Add text to the frame for posture label and confidence
         text = f"{posture_label}: {confidence:.2f}"
@@ -243,24 +244,8 @@ class PostureAnalyzer:
             (0, 255, 0) if posture_label == "normal" else (0, 0, 255), 2
         )
         
-        # Add metrics to the frame
-        y_pos = 70
-        cv2.putText(
-            annotated_frame, "Metrics:", (10, y_pos),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2
-        )
-        y_pos += 30
-        
-        for key, value in metrics.items():
-            metric_text = f"{key.replace('_', ' ').title()}: {value:.2f}"
-            cv2.putText(
-                annotated_frame, metric_text, (20, y_pos),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 1
-            )
-            y_pos += 25
-        
         # Add recommendations to the frame
-        annotated_frame = self.display_recommendations(annotated_frame, recommendations, y_pos + 20)
+        annotated_frame = self.display_recommendations(annotated_frame, recommendations)
         
         return annotated_frame, posture_label, confidence, recommendations, success
         

@@ -1,0 +1,8 @@
+timestamp,posture_label,confidence 
+20250313_090431,severe_kyphosis,0.5100
+20250313_090501,severe_kyphosis,0.4724
+20250313_090531,severe_kyphosis,0.4727
+20250313_090601,severe_kyphosis,0.5021
+20250313_090632,severe_kyphosis,0.4566
+20250313_090700,severe_kyphosis,0.4546
+20250313_090702,severe_kyphosis,0.4553
