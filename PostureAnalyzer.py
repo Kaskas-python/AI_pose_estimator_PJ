@@ -175,13 +175,14 @@ class PostureAnalyzer:
             landmarks_dict (dict): Dictionary of landmark coordinates
             
         Returns:
-            tuple: (prediction_label, confidence, posture_metrics)
+            tuple: (prediction_label, confidence)
         """
         # Preprocess landmarks
         features = self.preprocess_landmarks(landmarks_dict)
         
         # Make prediction
-        prediction = self.model.predict(features)[0]
+        prediction = self.model.predict(features)
+        prediction = prediction[0]
         
         # Get the predicted class and confidence
         predicted_class = np.argmax(prediction)
@@ -249,7 +250,7 @@ class PostureAnalyzer:
         
         return annotated_frame, posture_label, confidence, recommendations, success
         
-    def save_analysis(self, posture_label, confidence, recommendations):
+    def save_analysis(self, posture_label, confidence, recommendations, frame, annotated_frame):
         """
         Save the analysis results and frame.
         
@@ -272,6 +273,9 @@ class PostureAnalyzer:
             f.write("\n==== RECOMMENDATIONS ====\n")
             for i, rec in enumerate(recommendations, 1):
                 f.write(f"{i}. {rec}\n")
+
+        report_path_image= os.path.join(self.results_dir, f"posture_report_{timestamp}_image.jpeg",)
+        cv2.imwrite(report_path_image, annotated_frame)
         
         # Log to CSV
         log_path = os.path.join(self.results_dir, "posture_analysis_log.csv")
@@ -375,7 +379,7 @@ class PostureAnalyzer:
         
         return display_frame
     
-    def run_camera(self, camera_id=0, save_interval=30):
+    def run_camera(self, camera_id=0, save_interval=10):
         """
         Run the analyzer on the webcam feed.
         
@@ -457,7 +461,7 @@ class PostureAnalyzer:
             
             # Auto-save at intervals
             if save_interval > 0 and success and (current_time - last_save_time >= save_interval):
-                self.save_analysis(posture_label, confidence, recommendations)
+                self.save_analysis(posture_label, confidence, recommendations, frame, annotated_frame)
                 last_save_time = current_time
             
             # Handle key presses
