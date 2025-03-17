@@ -6,6 +6,7 @@ import pandas as pd
 import tensorflow as tf
 import os
 from datetime import datetime
+from mediapipe_standardization import standardize_pose_keypoints, apply_pose_alignment
 
 class PostureAnalyzer:
     def __init__(self, model_path, confidence_threshold=0.5):
@@ -72,21 +73,13 @@ class PostureAnalyzer:
         # Define the landmarks used for posture analysis
         # This should match exactly what was used during training
         landmarks = [
-            'nose', 'left_eye_inner', 'left_eye', 'left_eye_outer',
-            'right_eye_inner', 'right_eye', 'right_eye_outer',
-            'left_ear', 'right_ear', 'mouth_left', 'mouth_right',
-            'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
-            'left_wrist', 'right_wrist', 'left_pinky', 'right_pinky',
-            'left_index', 'right_index', 'left_thumb', 'right_thumb',
-            'left_hip', 'right_hip', 'left_knee', 'right_knee',
-            'left_ankle', 'right_ankle', 'left_heel', 'right_heel',
-            'left_foot_index', 'right_foot_index'
+            'nose', 'left_ear', 'mouth_left', 'left_shoulder','left_hip','right_shoulder','right_hip'
         ]
         
         # Create feature names for each landmark's x, y, z coordinates
         features = []
         for landmark in landmarks:
-            features.extend([f"{landmark}_x", f"{landmark}_y", f"{landmark}_z", f"{landmark}_visibility"])
+            features.extend([f"{landmark}_x", f"{landmark}_y", f"{landmark}_z"])
         
         return features
     
@@ -120,14 +113,28 @@ class PostureAnalyzer:
         if not results.pose_landmarks:
             return annotated_frame, None, False
         
+        keypoints = []
+        visibility_scores = []
+        for idx, landmark in enumerate(results.pose_landmarks.landmark):
+            keypoints.append([landmark.x, landmark.y, landmark.z, landmark.visibility])
+            visibility_scores.append(landmark.visibility)
+
+        aligned_keypoints = np.array(keypoints)  # Convert to NumPy array
+        
+        # Apply standardization
+        #standardized_keypoints = standardize_pose_keypoints(keypoints, method='shoulder_centered')
+
+        # Apply alignment to standardized keypoints
+        #aligned_keypoints = apply_pose_alignment(standardized_keypoints)
+        
         # Extract landmarks to a dictionary
         landmarks_dict = {}
-        for idx, landmark in enumerate(results.pose_landmarks.landmark):
-            landmark_name = self.mp_pose.PoseLandmark(idx).name.lower()
-            landmarks_dict[f"{landmark_name}_x"] = landmark.x
-            landmarks_dict[f"{landmark_name}_y"] = landmark.y
-            landmarks_dict[f"{landmark_name}_z"] = landmark.z
-            landmarks_dict[f"{landmark_name}_visibility"] = landmark.visibility
+    
+        for idx, landmark_name in enumerate(self.mp_pose.PoseLandmark):
+            landmarks_dict[f"{landmark_name._name_}_x".lower()] = aligned_keypoints[idx][0]
+            landmarks_dict[f"{landmark_name._name_}_y".lower()] = aligned_keypoints[idx][1]
+            landmarks_dict[f"{landmark_name._name_}_z".lower()] = aligned_keypoints[idx][2]
+            landmarks_dict[f"{landmark_name._name_}_visibility".lower()] = visibility_scores[idx]
         
         return annotated_frame, landmarks_dict, True
 
@@ -143,11 +150,6 @@ class PostureAnalyzer:
         """
         # Create a dataframe with the same structure as training data
         features = pd.DataFrame([landmarks_dict])
-        
-        # Ensure we have all the required features in the correct order
-        for feature in self.feature_names:
-            if feature not in features.columns:
-                features[feature] = 0.0
         
         # Select only the features used during training, in the correct order
         features = features[self.feature_names]
@@ -231,6 +233,9 @@ class PostureAnalyzer:
             )
             return annotated_frame, "No pose detected", 0.0, [], False
         
+        for landmark in ['nose', 'left_ear', 'mouth_left', 'left_shoulder','left_hip','right_shoulder','right_hip']:
+            if landmarks_dict[f"{landmark}_visibility"] < 0.9:
+                return annotated_frame, f"Insufficient visibility for {landmark}", 0.0, [], False
         # Predict posture
         posture_label, confidence = self.predict_posture(landmarks_dict)
         
@@ -356,14 +361,14 @@ class PostureAnalyzer:
         
         # Add a semi-transparent overlay for better text readability
         overlay = display_frame.copy()
-        cv2.rectangle(overlay, (0, start_y-40), (display_frame.shape[1], start_y + 40*len(recommendations)), 
+        cv2.rectangle(overlay, (0, start_y-40), (display_frame.shape[1]//2, start_y + 40*len(recommendations)), 
                     (0, 0, 0), -1)
         cv2.addWeighted(overlay, 0.6, display_frame, 0.4, 0, display_frame)
         
         # Add title
         cv2.putText(
             display_frame, "Recommendations:", (10, start_y-10),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2
+            cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 255, 255), 2
         )
         
         # Add recommendations
@@ -440,7 +445,7 @@ class PostureAnalyzer:
             # Display status
             status_text = "Status: Analyzing posture"
             if not success:
-                status_text = "Status: No pose detected, please stand in frame"
+                status_text = f"Status: {posture_label}"
             elif detailed_report_path and current_time - report_display_time < 5:  # Show for 5 seconds
                 status_text = f"Report saved: {detailed_report_path}"
                 
@@ -487,7 +492,7 @@ def main():
     Main function to run the posture analyzer.
     """
     # Path to your pre-trained model
-    model_path = "lumbar_kyphosis_model_optimized.h5"
+    model_path = "lumbar_kyphosis_model_half_working.h5"
     
     # Create analyzer instance
     analyzer = PostureAnalyzer(model_path)

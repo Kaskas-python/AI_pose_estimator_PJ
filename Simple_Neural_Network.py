@@ -2,10 +2,13 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, BatchNormalization
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.regularizers import l2
+from sklearn.metrics import classification_report, confusion_matrix
 # from tensorflow.keras.utils import plot_model
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import matplotlib.pyplot as plt
+import numpy as np
 
 def preprocess_data(df):
     # Extract features (keypoints) and labels
@@ -13,7 +16,7 @@ def preprocess_data(df):
     labels = df['label']  # 'normal', 'mild_kyphosis', 'severe_kyphosis'
     
     # Split before scaling to avoid data leakage
-    X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=43, stratify=labels)
+    X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=46, stratify=labels)
     
     # Normalize features
     scaler = StandardScaler()
@@ -34,35 +37,30 @@ def preprocess_data(df):
 
 def build_model(input_shape):
 
-    adam_optimizer = Adam(
-        learning_rate=0.001,      # Initial learning rate
-        beta_1=0.9,               # Exponential decay rate for the 1st moment estimates
-        beta_2=0.999,             # Exponential decay rate for the 2nd moment estimates
-        epsilon=1e-07,            # Small constant for numerical stability
-        amsgrad=False,            # Whether to apply the AMSGrad variant
-        weight_decay=0.0001       # Weight decay regularization term
-    )
     model = Sequential([
-        Dense(108, activation='relu', input_shape=(input_shape,)),
-        Dropout(0.4),
+        Dense(128, activation='relu', kernel_regularizer=l2(0.0001), input_shape=(input_shape,)),
         BatchNormalization(),
-        
-        Dense(64, activation='relu'),
         Dropout(0.4),
+
+        Dense(64, activation='relu', kernel_regularizer=l2(0.0001)),
         BatchNormalization(),
-        
-        Dense(32, activation='relu'),
         Dropout(0.4),
+
+        # Dense(32, activation='relu', kernel_regularizer=l2(0.0001)),
+        # BatchNormalization(),
+        # Dropout(0.4),
         
         
-        Dense(16, activation='relu'),
+        Dense(16, activation='relu', kernel_regularizer=l2(0.0001)),
+        BatchNormalization(),
 
         Dense(3, activation='softmax')  # 3 classes: Normal, Mild Kyphosis, Severe Kyphosis
     ])
     
     model.compile(loss='sparse_categorical_crossentropy',
-                   optimizer= adam_optimizer,
-                     metrics= ['accuracy'])
+                   optimizer= Adam( learning_rate=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-07, amsgrad=False),
+                    metrics= ['accuracy']
+                    )
     return model
 
 def run_model(X_train, X_test, y_train, y_test, input_shape):
@@ -70,7 +68,7 @@ def run_model(X_train, X_test, y_train, y_test, input_shape):
     model.summary()
     # plot_model(model, to_file="model_structure.png", show_shapes=True, show_layer_names=True)
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=7, verbose=1)
     history = model.fit(X_train, y_train, epochs=100, batch_size=32, validation_data=(X_test, y_test),
                         callbacks=[early_stopping, reduce_lr])
     
@@ -100,3 +98,12 @@ def run_model(X_train, X_test, y_train, y_test, input_shape):
     plt.title('Model Loss')
     
     plt.show()
+
+    # Model Evaluation
+    y_pred = model.predict(X_test)
+    y_pred_classes = np.argmax(y_pred, axis=1)
+    
+    print("Classification Report:")
+    print(classification_report(y_test, y_pred_classes))
+    print("Confusion Matrix:")
+    print(confusion_matrix(y_test, y_pred_classes))
