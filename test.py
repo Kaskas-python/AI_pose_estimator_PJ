@@ -18,7 +18,7 @@ df = prepare_extract_and_store_data_original(image_dir, annotated_image_dir, csv
 
 df_columns = df.columns
 
-analyzer = PostureAnalyzer("lumbar_kyphosis_model_optimized.h5")
+analyzer = PostureAnalyzer("lumbar_kyphosis_model_half_working.h5")
 warnings.filterwarnings('ignore')
 i = 0
 df2=pd.DataFrame()
@@ -29,10 +29,10 @@ for row in df.values:
     landmarks_dict_new = {}
     landmarks_dict_new["id"] = landmarks_dict[f"id"]
     landmarks_dict_new["label"] = landmarks_dict[f"label"]
-    include = "NOSE,LEFT_EAR,MOUTH_LEFT,LEFT_SHOULDER,LEFT_HIP,'right_shoulder','right_hip'".lower().split(",")
+    include = "NOSE,LEFT_EAR,MOUTH_LEFT,LEFT_SHOULDER,LEFT_HIP,RIGHT_SHOULDER,right_hip".lower().split(",")
     bad = False
     for value in include:
-        if landmarks_dict[f"{value}_visibility"] < 0.9:
+        if landmarks_dict[f"{value}_visibility"] < 0.5:
             bad = True
             break
         landmarks_dict_new[f"{value.upper()}_x"] = landmarks_dict[f"{value}_x"]
@@ -41,7 +41,7 @@ for row in df.values:
     if not bad:
         df2 = pd.concat([df2, pd.DataFrame([landmarks_dict_new])], ignore_index=True)
         print(landmarks_dict_new)
-    #print(i, analyzer.predict_posture(landmarks_dict))
+    print(i, analyzer.predict_posture(landmarks_dict))
     i += 1
 df2.to_csv("lumbar_kyphosis_dataset_from_images_updated.csv", index=False)
 
