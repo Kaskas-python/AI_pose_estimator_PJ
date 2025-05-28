@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import matplotlib.pyplot as plt
 import numpy as np
+from pickle import dump
 
 def preprocess_data(df):
     # Extract features (keypoints) and labels
@@ -20,7 +21,10 @@ def preprocess_data(df):
     
     # Normalize features
     scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
+    scaler.fit(X_train)
+    dump(scaler, open('StandardScaler.pkl', 'wb'))
+    
+    X_train = scaler.transform(X_train)
     X_test = scaler.transform(X_test)
     
     # Encode labels
@@ -46,9 +50,9 @@ def build_model(input_shape):
         BatchNormalization(),
         Dropout(0.4),
 
-        # Dense(32, activation='relu', kernel_regularizer=l2(0.0001)),
-        # BatchNormalization(),
-        # Dropout(0.4),
+        Dense(32, activation='relu', kernel_regularizer=l2(0.0001)),
+        BatchNormalization(),
+        Dropout(0.4),
         
         
         Dense(16, activation='relu', kernel_regularizer=l2(0.0001)),

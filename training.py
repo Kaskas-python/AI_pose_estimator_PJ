@@ -18,7 +18,7 @@ df = update_dataframe(df)
 
 df_augmented = augment_keypoint_data(df)
 
-print (df_augmented.info())
+# print (df_augmented.info())
 X_train, X_test, y_train, y_test, features = preprocess_data(df_augmented)
 
 print("Data preprocessing and splitting complete.")

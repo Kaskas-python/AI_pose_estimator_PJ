@@ -6,7 +6,9 @@ import pandas as pd
 import tensorflow as tf
 import os
 from datetime import datetime
+from sklearn.preprocessing import StandardScaler
 from mediapipe_standardization import standardize_pose_keypoints, apply_pose_alignment
+from pickle import load
 
 class PostureAnalyzer:
     def __init__(self, model_path, confidence_threshold=0.5):
@@ -150,13 +152,16 @@ class PostureAnalyzer:
         """
         # Create a dataframe with the same structure as training data
         features = pd.DataFrame([landmarks_dict])
-        
+       
         # Select only the features used during training, in the correct order
         features = features[self.feature_names]
+       
         
         # Convert to numpy array and reshape for LSTM if needed
         features_array = features.values.astype('float32')
-        
+        scaler= load(open('StandardScaler.pkl', 'rb'))
+        features_array = scaler.transform(features_array)
+
         # If your model expects a sequence, reshape accordingly
         # For example, if your model expects [batch_size, time_steps, features]:
         if len(self.model.input_shape) > 2:
@@ -492,14 +497,14 @@ def main():
     Main function to run the posture analyzer.
     """
     # Path to your pre-trained model
-    model_path = "lumbar_kyphosis_model_half_working.h5"
+    model_path = "lumbar_kyphosis_model_with_scaler.h5"
     
     # Create analyzer instance
     analyzer = PostureAnalyzer(model_path)
     
     # Run the camera analysis
     # Set save_interval=0 to disable auto-saving
-    analyzer.run_camera(camera_id=0, save_interval=30)
+    analyzer.run_camera(camera_id=0, save_interval=10)
 
 
 if __name__ == "__main__":
